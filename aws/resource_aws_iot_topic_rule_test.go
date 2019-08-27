@@ -300,6 +300,24 @@ func TestAccAWSIoTTopicRule_iot_events(t *testing.T) {
 	})
 }
 
+func TestAccAWSIoTTopicRule_iot_analytics(t *testing.T) {
+	rName := acctest.RandString(5)
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSIoTTopicRuleDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSIoTTopicRule_iot_analytics(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSIoTTopicRuleExists_basic("aws_iot_topic_rule.rule"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSIoTTopicRuleDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).iotconn
 
@@ -644,6 +662,23 @@ resource "aws_iot_topic_rule" "rule" {
     input_name = "fake_input_name"
     role_arn  = "${aws_iam_role.iot_role.arn}"
     message_id = "fake_message_id"
+  }
+}
+`, rName)
+}
+
+func testAccAWSIoTTopicRule_iot_analytics(rName string) string {
+	return fmt.Sprintf(testAccAWSIoTTopicRuleRole+`
+resource "aws_iot_topic_rule" "rule" {
+  name        = "test_rule_%[1]s"
+  description = "Example rule"
+  enabled     = true
+  sql         = "SELECT * FROM 'topic/test'"
+  sql_version = "2015-10-08"
+
+  iot_analytics {
+    channel_name = "fakedata"
+    role_arn  = "${aws_iam_role.iot_role.arn}"
   }
 }
 `, rName)

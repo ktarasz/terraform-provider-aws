@@ -338,6 +338,23 @@ func resourceAwsIotTopicRule() *schema.Resource {
 					},
 				},
 			},
+			"iot_analytics": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"channel_name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"role_arn": {
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validateArn,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -355,11 +372,12 @@ func createTopicRulePayload(d *schema.ResourceData) *iot.TopicRulePayload {
 	snsActions := d.Get("sns").(*schema.Set).List()
 	sqsActions := d.Get("sqs").(*schema.Set).List()
 	iotEventsActions := d.Get("iot_events").(*schema.Set).List()
+	iotAnalyticsActions := d.Get("iot_analytics").(*schema.Set).List()
 
 	numActions := len(cloudwatchAlarmActions) + len(cloudwatchMetricActions) +
 		len(dynamoDbActions) + len(elasticsearchActions) + len(firehoseActions) +
 		len(kinesisActions) + len(lambdaActions) + len(republishActions) +
-		len(s3Actions) + len(snsActions) + len(sqsActions) + len(iotEventsActions)
+		len(s3Actions) + len(snsActions) + len(sqsActions) + len(iotEventsActions) + len(iotAnalyticsActions)
 	actions := make([]*iot.Action, numActions)
 
 	i := 0
@@ -560,6 +578,18 @@ func createTopicRulePayload(d *schema.ResourceData) *iot.TopicRulePayload {
 		i++
 	}
 
+	// Add Analytic actions
+	for _, a := range iotAnalyticsActions {
+		raw := a.(map[string]interface{})
+		actions[i] = &iot.Action{
+			IotAnalytics: &iot.IotAnalyticsAction{
+				ChannelName: aws.String(raw["channel_name"].(string)),
+				RoleArn:     aws.String(raw["role_arn"].(string)),
+			},
+		}
+		i++
+	}
+
 	return &iot.TopicRulePayload{
 		Description:      aws.String(d.Get("description").(string)),
 		RuleDisabled:     aws.Bool(!d.Get("enabled").(bool)),
@@ -621,6 +651,7 @@ func resourceAwsIotTopicRuleRead(d *schema.ResourceData, meta interface{}) error
 	d.Set("sns", flattenIoTRuleSnsActions(out.Rule.Actions))
 	d.Set("sqs", flattenIoTRuleSqsActions(out.Rule.Actions))
 	d.Set("iot_events", flattenIoTRuleIotEventsActions(out.Rule.Actions))
+	d.Set("iot_analytics", flattenIoTRuleIotAnalyticsActions(out.Rule.Actions))
 
 	return nil
 }
