@@ -35,4 +35,4 @@ install:
 
 branches:
   only:
-    - master
+    - master-qg
