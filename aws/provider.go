@@ -557,6 +557,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_iot_thing_principal_attachment":                      resourceAwsIotThingPrincipalAttachment(),
 			"aws_iot_thing_type":                                      resourceAwsIotThingType(),
 			"aws_iot_topic_rule":                                      resourceAwsIotTopicRule(),
+			"aws_iotevents_input":                                     resourceAwsIotEventsInput(),
 			"aws_iot_role_alias":                                      resourceAwsIotRoleAlias(),
 			"aws_iotevents_detector_model":                            resourceAwsIotEventsDetectorModel(),
 			"aws_key_pair":                                            resourceAwsKeyPair(),
