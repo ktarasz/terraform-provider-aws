@@ -2,6 +2,7 @@ package aws
 
 import (
 	"log"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iotevents"
@@ -577,7 +578,21 @@ func resourceAwsIotDetectorCreate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	log.Printf("[DEBUG] Creating IoT Model Detector: %s", params)
-	_, err := conn.CreateDetectorModel(params)
+
+	retrySecondsList := [6]int{1, 2, 5, 8, 10, 0}
+
+	var err error
+
+	for _, sleepSeconds := range retrySecondsList {
+		err = nil
+
+		_, err := conn.CreateDetectorModel(params)
+		if err == nil {
+			break
+		}
+
+		time.Sleep(time.Duration(sleepSeconds) * time.Second)
+	}
 
 	if err != nil {
 		return err
@@ -807,7 +822,19 @@ func resourceAwsIotDetectorUpdate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	log.Printf("[DEBUG] Updating IoT Events Detector Model: %s", params)
-	_, err := conn.UpdateDetectorModel(params)
+
+	retrySecondsList := [6]int{1, 2, 5, 8, 10, 0}
+	var err error
+	for _, sleepSeconds := range retrySecondsList {
+		err = nil
+
+		_, err := conn.UpdateDetectorModel(params)
+		if err == nil {
+			break
+		}
+
+		time.Sleep(time.Duration(sleepSeconds) * time.Second)
+	}
 
 	if err != nil {
 		return err
