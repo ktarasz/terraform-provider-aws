@@ -559,6 +559,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_iot_topic_rule":                                      resourceAwsIotTopicRule(),
 			"aws_iotevents_input":                                     resourceAwsIotEventsInput(),
 			"aws_iot_role_alias":                                      resourceAwsIotRoleAlias(),
+			"aws_iotevents_detector_model":                            resourceAwsIotEventsDetectorModel(),
 			"aws_key_pair":                                            resourceAwsKeyPair(),
 			"aws_kinesis_firehose_delivery_stream":                    resourceAwsKinesisFirehoseDeliveryStream(),
 			"aws_kinesis_stream":                                      resourceAwsKinesisStream(),
