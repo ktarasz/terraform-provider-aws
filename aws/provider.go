@@ -564,6 +564,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_iotevents_detector_model":                            resourceAwsIotEventsDetectorModel(),
 			"aws_iotanalytics_channel":                                resourceAwsIotAnalyticsChannel(),
 			"aws_iotanalytics_datastore":                              resourceAwsIotAnalyticsDatastore(),
+			"aws_iotanalytics_dataset":                                resourceAwsIotAnalyticsDataset(),
 			"aws_key_pair":                                            resourceAwsKeyPair(),
 			"aws_kinesis_firehose_delivery_stream":                    resourceAwsKinesisFirehoseDeliveryStream(),
 			"aws_kinesis_stream":                                      resourceAwsKinesisStream(),
