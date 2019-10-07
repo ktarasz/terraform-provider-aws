@@ -6,9 +6,9 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iotanalytics"
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 func TestAccAWSIoTAnalyticsDatastore_basic(t *testing.T) {
@@ -30,25 +30,25 @@ func TestAccAWSIoTAnalyticsDatastore_basic(t *testing.T) {
 	})
 }
 
-func TestAccAWSIoTAnalyticsDatastore_CustomerManagedS3(t *testing.T) {
-	rString := acctest.RandString(5)
+// func TestAccAWSIoTAnalyticsDatastore_CustomerManagedS3(t *testing.T) {
+// 	rString := acctest.RandString(5)
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSIoTAnalyticsDatastoreDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccAWSIoTAnalyticsDatastore_CustomerManagedS3(rString),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSIoTAnalyticsDatastoreExists_basic("aws_iotanalytics_datastore.datastore"),
-					resource.TestCheckResourceAttr("aws_iotanalytics_datastore.datastore", "name", fmt.Sprintf("test_datastore_%s", rString)),
-					testAccCheckAWSIoTAnalyticsDatastore_CustomerManagedS3,
-				),
-			},
-		},
-	})
-}
+// 	resource.ParallelTest(t, resource.TestCase{
+// 		PreCheck:     func() { testAccPreCheck(t) },
+// 		Providers:    testAccProviders,
+// 		CheckDestroy: testAccCheckAWSIoTAnalyticsDatastoreDestroy,
+// 		Steps: []resource.TestStep{
+// 			{
+// 				Config: testAccAWSIoTAnalyticsDatastore_CustomerManagedS3(rString),
+// 				Check: resource.ComposeTestCheckFunc(
+// 					testAccCheckAWSIoTAnalyticsDatastoreExists_basic("aws_iotanalytics_datastore.datastore"),
+// 					resource.TestCheckResourceAttr("aws_iotanalytics_datastore.datastore", "name", fmt.Sprintf("test_datastore_%s", rString)),
+// 					testAccCheckAWSIoTAnalyticsDatastore_CustomerManagedS3,
+// 				),
+// 			},
+// 		},
+// 	})
+// }
 
 func TestAccAWSIoTAnalyticsDatastore_RetentionPeriodNumberOfDays(t *testing.T) {
 	rString := acctest.RandString(5)

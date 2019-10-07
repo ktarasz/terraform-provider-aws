@@ -33,6 +33,7 @@ import (
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/iot"
+	"github.com/aws/aws-sdk-go/service/iotanalytics"
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/macie"
@@ -48,6 +49,7 @@ import (
 	"github.com/beevik/etree"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/structure"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/mitchellh/copystructure"
 	"gopkg.in/yaml.v2"
 )
@@ -5577,4 +5579,67 @@ func flattenRoute53ResolverRuleTargetIps(targetAddresses []*route53resolver.Targ
 	}
 
 	return vTargetIps
+}
+
+func generateRetentionPeriodSchema() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"number_of_days": {
+				Type:          schema.TypeInt,
+				Optional:      true,
+				ConflictsWith: []string{"retention_period.0.unlimited"},
+				ValidateFunc:  validation.IntAtLeast(1),
+			},
+			"unlimited": {
+				Type:          schema.TypeBool,
+				Optional:      true,
+				ConflictsWith: []string{"retention_period.0.number_of_days"},
+			},
+		},
+	}
+}
+
+func parseRetentionPeriod(rawRetentionPeriod map[string]interface{}) *iotanalytics.RetentionPeriod {
+
+	var numberOfDays *int64
+	if v, ok := rawRetentionPeriod["number_of_days"]; ok && int64(v.(int)) > 1 {
+		numberOfDays = aws.Int64(int64(v.(int)))
+	}
+	var unlimited *bool
+	if v, ok := rawRetentionPeriod["unlimited"]; ok {
+		unlimited = aws.Bool(v.(bool))
+	}
+	return &iotanalytics.RetentionPeriod{
+		NumberOfDays: numberOfDays,
+		Unlimited:    unlimited,
+	}
+}
+
+func flattenRetentionPeriod(retentionPeriod *iotanalytics.RetentionPeriod) map[string]interface{} {
+	if retentionPeriod == nil {
+		return nil
+	}
+
+	rawRetentionPeriod := make(map[string]interface{})
+
+	if retentionPeriod.NumberOfDays != nil {
+		rawRetentionPeriod["number_of_days"] = aws.Int64Value(retentionPeriod.NumberOfDays)
+	}
+	if retentionPeriod.Unlimited != nil {
+		rawRetentionPeriod["unlimited"] = aws.BoolValue(retentionPeriod.Unlimited)
+	}
+
+	return rawRetentionPeriod
+}
+
+func wrapMapInList(mapping map[string]interface{}) []map[string]interface{} {
+	// We should use TypeList or TypeSet with MaxItems in case we want single object.
+	// So, schema.ResourceData.Set requires list as type of argument for such fields,
+	// as a result code becames a little bit messy with such instructions : []map[string]interface{}{someObject}.
+	// This helper function wrap mapping in list, and makes code more readable and intuitive.
+	if mapping == nil {
+		return make([]map[string]interface{}, 0)
+	} else {
+		return []map[string]interface{}{mapping}
+	}
 }

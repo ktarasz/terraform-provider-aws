@@ -5,8 +5,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iotanalytics"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
 func generateVariableSchema() *schema.Resource {
@@ -234,24 +234,6 @@ func generateDatasetContentDeliveryRuleSchema() *schema.Resource {
 	}
 }
 
-func generateRetentionPeriodSchema() *schema.Resource {
-	return &schema.Resource{
-		Schema: map[string]*schema.Schema{
-			"number_of_days": {
-				Type:          schema.TypeInt,
-				Optional:      true,
-				ConflictsWith: []string{"retention_period.0.unlimited"},
-				ValidateFunc:  validation.IntAtLeast(1),
-			},
-			"unlimited": {
-				Type:          schema.TypeBool,
-				Optional:      true,
-				ConflictsWith: []string{"retention_period.0.number_of_days"},
-			},
-		},
-	}
-}
-
 func generateDatasetTriggerSchema() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
@@ -424,7 +406,7 @@ func parseSqlQueryAction(rawSqlQueryAction map[string]interface{}) *iotanalytics
 
 }
 
-func parseAction(rawAction map[string]interface{}) *iotanalytics.DatasetAction {
+func parseDatasetAction(rawAction map[string]interface{}) *iotanalytics.DatasetAction {
 	action := &iotanalytics.DatasetAction{
 		ActionName: aws.String(rawAction["name"].(string)),
 	}
@@ -495,22 +477,6 @@ func parseContentDeliveryRule(rawContentDeliveryRule map[string]interface{}) *io
 	return datasetContentDeliveryRule
 }
 
-func parseRetentionPeriod(rawRetentionPeriod map[string]interface{}) *iotanalytics.RetentionPeriod {
-
-	var numberOfDays *int64
-	if v, ok := rawRetentionPeriod["number_of_days"]; ok && int64(v.(int)) > 1 {
-		numberOfDays = aws.Int64(int64(v.(int)))
-	}
-	var unlimited *bool
-	if v, ok := rawRetentionPeriod["unlimited"]; ok {
-		unlimited = aws.Bool(v.(bool))
-	}
-	return &iotanalytics.RetentionPeriod{
-		NumberOfDays: numberOfDays,
-		Unlimited:    unlimited,
-	}
-}
-
 func parseTrigger(rawTrigger map[string]interface{}) *iotanalytics.DatasetTrigger {
 	trigger := &iotanalytics.DatasetTrigger{}
 
@@ -553,7 +519,7 @@ func resourceAwsIotAnalyticsDatasetCreate(d *schema.ResourceData, meta interface
 	rawActions := d.Get("action").(*schema.Set).List()
 	actions := make([]*iotanalytics.DatasetAction, 0)
 	for _, rawAction := range rawActions {
-		action := parseAction(rawAction.(map[string]interface{}))
+		action := parseDatasetAction(rawAction.(map[string]interface{}))
 		actions = append(actions, action)
 	}
 	params.Actions = actions
@@ -596,18 +562,6 @@ func resourceAwsIotAnalyticsDatasetCreate(d *schema.ResourceData, meta interface
 	d.SetId(name)
 
 	return resourceAwsIotAnalyticsDatasetRead(d, meta)
-}
-
-func wrapMapInList(mapping map[string]interface{}) []map[string]interface{} {
-	// We should use TypeList or TypeSet with MaxItems in case we want single object.
-	// So, schema.ResourceData.Set requires list as type of argument for such fields,
-	// as a result code becames a little bit messy with such instructions : []map[string]interface{}{someObject}.
-	// This helper function wrap mapping in list, and makes code more readable and intuitive.
-	if mapping == nil {
-		return make([]map[string]interface{}, 0)
-	} else {
-		return []map[string]interface{}{mapping}
-	}
 }
 
 func flattenVariable(variable *iotanalytics.Variable) map[string]interface{} {
@@ -681,7 +635,7 @@ func flattenSqlQueryAction(sqlQueryAction *iotanalytics.SqlQueryDatasetAction) m
 	return rawSqlQueryAction
 }
 
-func flattenAction(action *iotanalytics.DatasetAction) map[string]interface{} {
+func flattenDatasetAction(action *iotanalytics.DatasetAction) map[string]interface{} {
 	rawAction := make(map[string]interface{})
 	rawAction["name"] = aws.StringValue(action.ActionName)
 
@@ -746,23 +700,6 @@ func flattenContentDeliveryRule(datasetContentDeliveryRule *iotanalytics.Dataset
 	return rawContentDeliveryRule
 }
 
-func flattenRetentionPeriod(retentionPeriod *iotanalytics.RetentionPeriod) map[string]interface{} {
-	if retentionPeriod == nil {
-		return nil
-	}
-
-	rawRetentionPeriod := make(map[string]interface{})
-
-	if retentionPeriod.NumberOfDays != nil {
-		rawRetentionPeriod["number_of_days"] = aws.Int64Value(retentionPeriod.NumberOfDays)
-	}
-	if retentionPeriod.Unlimited != nil {
-		rawRetentionPeriod["unlimited"] = aws.BoolValue(retentionPeriod.Unlimited)
-	}
-
-	return rawRetentionPeriod
-}
-
 func flattenTrigger(trigger *iotanalytics.DatasetTrigger) map[string]interface{} {
 	rawTrigger := make(map[string]interface{})
 
@@ -810,7 +747,7 @@ func resourceAwsIotAnalyticsDatasetRead(d *schema.ResourceData, meta interface{}
 
 	rawActions := make([]map[string]interface{}, 0)
 	for _, action := range out.Dataset.Actions {
-		rawActions = append(rawActions, flattenAction(action))
+		rawActions = append(rawActions, flattenDatasetAction(action))
 	}
 	d.Set("action", rawActions)
 
@@ -845,7 +782,7 @@ func resourceAwsIotAnalyticsDatasetUpdate(d *schema.ResourceData, meta interface
 	rawActions := d.Get("action").(*schema.Set).List()
 	actions := make([]*iotanalytics.DatasetAction, 0)
 	for _, rawAction := range rawActions {
-		action := parseAction(rawAction.(map[string]interface{}))
+		action := parseDatasetAction(rawAction.(map[string]interface{}))
 		actions = append(actions, action)
 	}
 	params.Actions = actions

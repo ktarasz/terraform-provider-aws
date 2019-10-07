@@ -6,11 +6,10 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iotanalytics"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-func generateCustomerManagedS3Schema() *schema.Resource {
+func generateDatastoreCustomerManagedS3Schema() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"bucket": {
@@ -29,13 +28,13 @@ func generateCustomerManagedS3Schema() *schema.Resource {
 	}
 }
 
-func generateServiceManagedS3Schema() *schema.Resource {
+func generateDatastoreServiceManagedS3Schema() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{},
 	}
 }
 
-func generateStorageSchema() *schema.Resource {
+func generateDatastoreStorageSchema() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"customer_managed_s3": {
@@ -43,32 +42,14 @@ func generateStorageSchema() *schema.Resource {
 				Optional:      true,
 				MaxItems:      1,
 				ConflictsWith: []string{"storage.0.service_managed_s3"},
-				Elem:          generateCustomerManagedS3Schema(),
+				Elem:          generateDatastoreCustomerManagedS3Schema(),
 			},
 			"service_managed_s3": {
 				Type:          schema.TypeList,
 				Optional:      true,
 				MaxItems:      1,
 				ConflictsWith: []string{"storage.0.customer_managed_s3"},
-				Elem:          generateServiceManagedS3Schema(),
-			},
-		},
-	}
-}
-
-func generateRetentionPeriodSchema() *schema.Resource {
-	return &schema.Resource{
-		Schema: map[string]*schema.Schema{
-			"number_of_days": {
-				Type:          schema.TypeInt,
-				Optional:      true,
-				ConflictsWith: []string{"retention_period.0.unlimited"},
-				ValidateFunc:  validation.IntAtLeast(1),
-			},
-			"unlimited": {
-				Type:          schema.TypeBool,
-				Optional:      true,
-				ConflictsWith: []string{"retention_period.0.number_of_days"},
+				Elem:          generateDatastoreServiceManagedS3Schema(),
 			},
 		},
 	}
@@ -94,7 +75,7 @@ func resourceAwsIotAnalyticsDatastore() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				MaxItems: 1,
-				Elem:     generateStorageSchema(),
+				Elem:     generateDatastoreStorageSchema(),
 			},
 			"retention_period": {
 				Type:     schema.TypeSet,
@@ -106,7 +87,7 @@ func resourceAwsIotAnalyticsDatastore() *schema.Resource {
 	}
 }
 
-func parseCustomerManagedS3(rawCustomerManagedS3 map[string]interface{}) *iotanalytics.CustomerManagedDatastoreS3Storage {
+func parseDatastoreCustomerManagedS3(rawCustomerManagedS3 map[string]interface{}) *iotanalytics.CustomerManagedDatastoreS3Storage {
 	bucket := rawCustomerManagedS3["bucket"].(string)
 	roleArn := rawCustomerManagedS3["role_arn"].(string)
 	customerManagedS3 := &iotanalytics.CustomerManagedDatastoreS3Storage{
@@ -121,43 +102,27 @@ func parseCustomerManagedS3(rawCustomerManagedS3 map[string]interface{}) *iotana
 	return customerManagedS3
 }
 
-func parseServiceManagedS3(rawServiceManagedS3 map[string]interface{}) *iotanalytics.ServiceManagedDatastoreS3Storage {
+func parseDatastoreServiceManagedS3(rawServiceManagedS3 map[string]interface{}) *iotanalytics.ServiceManagedDatastoreS3Storage {
 	return &iotanalytics.ServiceManagedDatastoreS3Storage{}
 }
 
-func parseStorage(rawDatastoreStorage map[string]interface{}) *iotanalytics.DatastoreStorage {
+func parseDatastoreStorage(rawDatastoreStorage map[string]interface{}) *iotanalytics.DatastoreStorage {
 
 	var customerManagedS3 *iotanalytics.CustomerManagedDatastoreS3Storage
 	if list := rawDatastoreStorage["customer_managed_s3"].([]interface{}); len(list) > 0 {
 		rawCustomerManagedS3 := list[0].(map[string]interface{})
-		customerManagedS3 = parseCustomerManagedS3(rawCustomerManagedS3)
+		customerManagedS3 = parseDatastoreCustomerManagedS3(rawCustomerManagedS3)
 	}
 
 	var serviceManagedS3 *iotanalytics.ServiceManagedDatastoreS3Storage
 	if list := rawDatastoreStorage["service_managed_s3"].([]interface{}); len(list) > 0 {
 		rawServiceManagedS3 := list[0].(map[string]interface{})
-		serviceManagedS3 = parseServiceManagedS3(rawServiceManagedS3)
+		serviceManagedS3 = parseDatastoreServiceManagedS3(rawServiceManagedS3)
 	}
 
 	return &iotanalytics.DatastoreStorage{
 		CustomerManagedS3: customerManagedS3,
 		ServiceManagedS3:  serviceManagedS3,
-	}
-}
-
-func parseRetentionPeriod(rawRetentionPeriod map[string]interface{}) *iotanalytics.RetentionPeriod {
-
-	var numberOfDays *int64
-	if v, ok := rawRetentionPeriod["number_of_days"]; ok && int64(v.(int)) > 1 {
-		numberOfDays = aws.Int64(int64(v.(int)))
-	}
-	var unlimited *bool
-	if v, ok := rawRetentionPeriod["unlimited"]; ok {
-		unlimited = aws.Bool(v.(bool))
-	}
-	return &iotanalytics.RetentionPeriod{
-		NumberOfDays: numberOfDays,
-		Unlimited:    unlimited,
 	}
 }
 
@@ -171,7 +136,7 @@ func resourceAwsIotAnalyticsDatastoreCreate(d *schema.ResourceData, meta interfa
 	datastoreStorageSet := d.Get("storage").(*schema.Set).List()
 	if len(datastoreStorageSet) >= 1 {
 		rawDatastoreStorage := datastoreStorageSet[0].(map[string]interface{})
-		params.DatastoreStorage = parseStorage(rawDatastoreStorage)
+		params.DatastoreStorage = parseDatastoreStorage(rawDatastoreStorage)
 	}
 
 	retentionPeriodSet := d.Get("retention_period").(*schema.Set).List()
@@ -214,7 +179,7 @@ func resourceAwsIotAnalyticsDatastoreCreate(d *schema.ResourceData, meta interfa
 	return resourceAwsIotAnalyticsDatastoreRead(d, meta)
 }
 
-func flattenCustomerManagedS3(customerManagedS3 *iotanalytics.CustomerManagedDatastoreS3Storage) map[string]interface{} {
+func flattenDatastoreCustomerManagedS3(customerManagedS3 *iotanalytics.CustomerManagedDatastoreS3Storage) map[string]interface{} {
 	if customerManagedS3 == nil {
 		return nil
 	}
@@ -231,7 +196,7 @@ func flattenCustomerManagedS3(customerManagedS3 *iotanalytics.CustomerManagedDat
 	return rawCustomerManagedS3
 }
 
-func flattenServiceManagedS3(serviceManagedS3 *iotanalytics.ServiceManagedDatastoreS3Storage) map[string]interface{} {
+func flattenDatastoreServiceManagedS3(serviceManagedS3 *iotanalytics.ServiceManagedDatastoreS3Storage) map[string]interface{} {
 	if serviceManagedS3 == nil {
 		return nil
 	}
@@ -240,9 +205,9 @@ func flattenServiceManagedS3(serviceManagedS3 *iotanalytics.ServiceManagedDatast
 	return rawServiceManagedS3
 }
 
-func flattenStorage(datastoreStorage *iotanalytics.DatastoreStorage) map[string]interface{} {
-	customerManagedS3 := flattenCustomerManagedS3(datastoreStorage.CustomerManagedS3)
-	serviceManagedS3 := flattenServiceManagedS3(datastoreStorage.ServiceManagedS3)
+func flattenDatastoreStorage(datastoreStorage *iotanalytics.DatastoreStorage) map[string]interface{} {
+	customerManagedS3 := flattenDatastoreCustomerManagedS3(datastoreStorage.CustomerManagedS3)
+	serviceManagedS3 := flattenDatastoreServiceManagedS3(datastoreStorage.ServiceManagedS3)
 
 	if customerManagedS3 == nil && serviceManagedS3 == nil {
 		return nil
@@ -252,27 +217,6 @@ func flattenStorage(datastoreStorage *iotanalytics.DatastoreStorage) map[string]
 	rawStorage["customer_managed_s3"] = wrapMapInList(customerManagedS3)
 	rawStorage["service_managed_s3"] = wrapMapInList(serviceManagedS3)
 	return rawStorage
-}
-
-func flattenRetentionPeriod(retentionPeriod *iotanalytics.RetentionPeriod) map[string]interface{} {
-	rawRetentionPeriod := make(map[string]interface{})
-
-	if retentionPeriod.NumberOfDays != nil {
-		rawRetentionPeriod["number_of_days"] = aws.Int64Value(retentionPeriod.NumberOfDays)
-	}
-	if retentionPeriod.Unlimited != nil {
-		rawRetentionPeriod["unlimited"] = aws.BoolValue(retentionPeriod.Unlimited)
-	}
-
-	return rawRetentionPeriod
-}
-
-func wrapMapInList(mapping map[string]interface{}) []interface{} {
-	if mapping == nil {
-		return make([]interface{}, 0)
-	} else {
-		return []interface{}{mapping}
-	}
 }
 
 func resourceAwsIotAnalyticsDatastoreRead(d *schema.ResourceData, meta interface{}) error {
@@ -291,7 +235,7 @@ func resourceAwsIotAnalyticsDatastoreRead(d *schema.ResourceData, meta interface
 	}
 
 	d.Set("name", out.Datastore.Name)
-	storage := flattenStorage(out.Datastore.Storage)
+	storage := flattenDatastoreStorage(out.Datastore.Storage)
 	d.Set("storage", wrapMapInList(storage))
 	retentionPeriod := flattenRetentionPeriod(out.Datastore.RetentionPeriod)
 	d.Set("retention_period", wrapMapInList(retentionPeriod))
@@ -309,7 +253,7 @@ func resourceAwsIotAnalyticsDatastoreUpdate(d *schema.ResourceData, meta interfa
 	datastoreStorageSet := d.Get("storage").(*schema.Set).List()
 	if len(datastoreStorageSet) >= 1 {
 		rawDatastoreStorage := datastoreStorageSet[0].(map[string]interface{})
-		params.DatastoreStorage = parseStorage(rawDatastoreStorage)
+		params.DatastoreStorage = parseDatastoreStorage(rawDatastoreStorage)
 	}
 
 	retentionPeriodSet := d.Get("retention_period").(*schema.Set).List()
