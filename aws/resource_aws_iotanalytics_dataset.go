@@ -225,7 +225,7 @@ func generateDatasetContentDeliveryRuleSchema() *schema.Resource {
 				Optional: true,
 			},
 			"destination": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Required: true,
 				MaxItems: 1,
 				Elem:     generateDatasetContentDeliveryDestinationSchema(),
@@ -694,7 +694,7 @@ func flattenContentDeliveryRule(datasetContentDeliveryRule *iotanalytics.Dataset
 	rawContentDeliveryRule["destination"] = wrapMapInList(rawDestination)
 
 	if datasetContentDeliveryRule.EntryName != nil {
-		rawDestination["entry_name"] = aws.StringValue(datasetContentDeliveryRule.EntryName)
+		rawContentDeliveryRule["entry_name"] = aws.StringValue(datasetContentDeliveryRule.EntryName)
 	}
 
 	return rawContentDeliveryRule
