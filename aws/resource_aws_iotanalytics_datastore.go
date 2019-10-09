@@ -70,6 +70,7 @@ func resourceAwsIotAnalyticsDatastore() *schema.Resource {
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"storage": {
 				Type:     schema.TypeSet,

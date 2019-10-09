@@ -287,6 +287,7 @@ func resourceAwsIotAnalyticsDataset() *schema.Resource {
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"action": {
 				Type:     schema.TypeSet,
