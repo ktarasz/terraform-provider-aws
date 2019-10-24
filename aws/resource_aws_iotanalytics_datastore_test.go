@@ -24,31 +24,32 @@ func TestAccAWSIoTAnalyticsDatastore_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSIoTAnalyticsDatastoreExists_basic("aws_iotanalytics_datastore.datastore"),
 					resource.TestCheckResourceAttr("aws_iotanalytics_datastore.datastore", "name", fmt.Sprintf("test_datastore_%s", rString)),
+					resource.TestCheckResourceAttr("aws_iotanalytics_datastore.datastore", "tags.tagKey", "tagValue"),
 				),
 			},
 		},
 	})
 }
 
-// func TestAccAWSIoTAnalyticsDatastore_CustomerManagedS3(t *testing.T) {
-// 	rString := acctest.RandString(5)
+func TestAccAWSIoTAnalyticsDatastore_CustomerManagedS3(t *testing.T) {
+	rString := acctest.RandString(5)
 
-// 	resource.ParallelTest(t, resource.TestCase{
-// 		PreCheck:     func() { testAccPreCheck(t) },
-// 		Providers:    testAccProviders,
-// 		CheckDestroy: testAccCheckAWSIoTAnalyticsDatastoreDestroy,
-// 		Steps: []resource.TestStep{
-// 			{
-// 				Config: testAccAWSIoTAnalyticsDatastore_CustomerManagedS3(rString),
-// 				Check: resource.ComposeTestCheckFunc(
-// 					testAccCheckAWSIoTAnalyticsDatastoreExists_basic("aws_iotanalytics_datastore.datastore"),
-// 					resource.TestCheckResourceAttr("aws_iotanalytics_datastore.datastore", "name", fmt.Sprintf("test_datastore_%s", rString)),
-// 					testAccCheckAWSIoTAnalyticsDatastore_CustomerManagedS3,
-// 				),
-// 			},
-// 		},
-// 	})
-// }
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSIoTAnalyticsDatastoreDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSIoTAnalyticsDatastore_CustomerManagedS3(rString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSIoTAnalyticsDatastoreExists_basic("aws_iotanalytics_datastore.datastore"),
+					resource.TestCheckResourceAttr("aws_iotanalytics_datastore.datastore", "name", fmt.Sprintf("test_datastore_%s", rString)),
+					testAccCheckAWSIoTAnalyticsDatastore_CustomerManagedS3,
+				),
+			},
+		},
+	})
+}
 
 func TestAccAWSIoTAnalyticsDatastore_RetentionPeriodNumberOfDays(t *testing.T) {
 	rString := acctest.RandString(5)
@@ -233,6 +234,10 @@ func testAccAWSIoTAnalyticsDatastore_basic(rString string) string {
 	return fmt.Sprintf(`
 resource "aws_iotanalytics_datastore" "datastore" {
   name = "test_datastore_%[1]s"
+
+  tags = {
+	"tagKey" = "tagValue",
+  }
 
   storage {
 	  service_managed_s3 {}

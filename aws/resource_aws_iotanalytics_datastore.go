@@ -84,6 +84,11 @@ func resourceAwsIotAnalyticsDatastore() *schema.Resource {
 				MaxItems: 1,
 				Elem:     generateRetentionPeriodSchema(),
 			},
+			"tags": tagsSchema(),
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -134,6 +139,10 @@ func resourceAwsIotAnalyticsDatastoreCreate(d *schema.ResourceData, meta interfa
 		DatastoreName: aws.String(d.Get("name").(string)),
 	}
 
+	if tags := d.Get("tags").(map[string]interface{}); len(tags) > 0 {
+		params.Tags = tagsFromMapIotAnalytics(tags)
+	}
+
 	datastoreStorageSet := d.Get("storage").(*schema.Set).List()
 	if len(datastoreStorageSet) >= 1 {
 		rawDatastoreStorage := datastoreStorageSet[0].(map[string]interface{})
@@ -160,12 +169,12 @@ func resourceAwsIotAnalyticsDatastoreCreate(d *schema.ResourceData, meta interfa
 	// second time(when all required resources are created) datastore will be created successfully.
 	// So we suppose that problem is that AWS return response of successful role arn creation before
 	// process of creation is really ended, and then creation of datastore model fails.
-	for _, sleepSeconds := range retrySecondsList {
-		err = nil
-
+	for index, sleepSeconds := range retrySecondsList {
 		_, err = conn.CreateDatastore(params)
 		if err == nil {
 			break
+		} else if err != nil && index != len(retrySecondsList)-1 {
+			err = nil
 		}
 
 		time.Sleep(time.Duration(sleepSeconds) * time.Second)
@@ -240,6 +249,11 @@ func resourceAwsIotAnalyticsDatastoreRead(d *schema.ResourceData, meta interface
 	d.Set("storage", wrapMapInList(storage))
 	retentionPeriod := flattenRetentionPeriod(out.Datastore.RetentionPeriod)
 	d.Set("retention_period", wrapMapInList(retentionPeriod))
+	d.Set("arn", out.Datastore.Arn)
+
+	if err := getTagsIotAnalytics(conn, d); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -273,18 +287,22 @@ func resourceAwsIotAnalyticsDatastoreUpdate(d *schema.ResourceData, meta interfa
 	// Full explanation can be found in function `resourceAwsIotAnalyticsDatastoreCreate`.
 	// We suppose that such error can appear during update also, if you update
 	// role arn.
-	for _, sleepSeconds := range retrySecondsList {
-		err = nil
-
+	for index, sleepSeconds := range retrySecondsList {
 		_, err = conn.UpdateDatastore(params)
 		if err == nil {
 			break
+		} else if err != nil && index != len(retrySecondsList)-1 {
+			err = nil
 		}
 
 		time.Sleep(time.Duration(sleepSeconds) * time.Second)
 	}
 
 	if err != nil {
+		return err
+	}
+
+	if err := setTagsIotAnalytics(conn, d); err != nil {
 		return err
 	}
 
