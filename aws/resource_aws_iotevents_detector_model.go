@@ -317,6 +317,11 @@ func resourceAwsIotEventsDetectorModel() *schema.Resource {
 				Required:     true,
 				ValidateFunc: validateArn,
 			},
+			"tags": tagsSchema(),
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -570,6 +575,7 @@ func resourceAwsIotDetectorCreate(d *schema.ResourceData, meta interface{}) erro
 		DetectorModelName:       aws.String(detectorName),
 		DetectorModelDefinition: detectorDefinitionParams,
 		RoleArn:                 aws.String(roleArn),
+		Tags:                    tagsFromMapIotEvents(d.Get("tags").(map[string]interface{})),
 	}
 
 	if v, ok := d.GetOk("description"); ok {
@@ -594,14 +600,13 @@ func resourceAwsIotDetectorCreate(d *schema.ResourceData, meta interface{}) erro
 	// second time(when all required resources are created) detector will be created successfully.
 	// So we suppose that problem is that AWS return response of successful role arn creation before
 	// process of creation is really ended, and then creation of detector model fails.
-	for _, sleepSeconds := range retrySecondsList {
-		err = nil
-
+	for index, sleepSeconds := range retrySecondsList {
 		_, err = conn.CreateDetectorModel(params)
 		if err == nil {
 			break
+		} else if err != nil && index != len(retrySecondsList)-1 {
+			err = nil
 		}
-
 		time.Sleep(time.Duration(sleepSeconds) * time.Second)
 	}
 
@@ -809,6 +814,11 @@ func resourceAwsIotDetectorRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("role_arn", out.DetectorModel.DetectorModelConfiguration.RoleArn)
 	detectorModelDefinition := []map[string]interface{}{flattenDetectorModelDefinition(out.DetectorModel.DetectorModelDefinition)}
 	d.Set("definition", detectorModelDefinition)
+	d.Set("arn", out.DetectorModel.DetectorModelConfiguration.DetectorModelArn)
+
+	if err := getTagsIotEvents(conn, d); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -840,18 +850,21 @@ func resourceAwsIotDetectorUpdate(d *schema.ResourceData, meta interface{}) erro
 	// Full explanation can be found in function `resourceAwsIotDetectorCreate`.
 	// We suppose that such error can appear during update also, if you update
 	// role arn.
-	for _, sleepSeconds := range retrySecondsList {
-		err = nil
-
+	for index, sleepSeconds := range retrySecondsList {
 		_, err = conn.UpdateDetectorModel(params)
 		if err == nil {
 			break
+		} else if err != nil && index != len(retrySecondsList)-1 {
+			err = nil
 		}
-
 		time.Sleep(time.Duration(sleepSeconds) * time.Second)
 	}
 
 	if err != nil {
+		return err
+	}
+
+	if err := setTagsIotEvents(conn, d); err != nil {
 		return err
 	}
 
