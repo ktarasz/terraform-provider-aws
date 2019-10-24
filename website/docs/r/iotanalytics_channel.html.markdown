@@ -23,6 +23,7 @@ resource "aws_iotanalytics_channel" "channel_example" {
 ## Argument Reference
 
 * `name` - (Required) The name of the input.
+* `tags` - (Optional) Map. Map of tags. Metadata that can be used to manage the channel.
 
 The `storage` - (Optional) The definition of the input. Object takes the following arguments:
 
@@ -33,7 +34,7 @@ The `storage` - (Optional) The definition of the input. Object takes the followi
     * `role_arn` - (Required) The ARN of the role which grants AWS IoT Analytics permission to interact with your Amazon S3 resources
 
 `Note:` You can use only one parameter for `storage` (`service_managed_s3` or `customer_managed_s3`), otherwise you will get an error.
-If you don't choose any parameter or don't define `storage` object, `service_managed_s3` will be choosen by AWS.
+If you don't choose any parameter or don't define `storage` object, `service_managed_s3` will be chosen by AWS.
 
 The `retention_period` - (Optional) How long, in days, message data is kept for the channel. Object takes following arguments.
 
@@ -48,6 +49,7 @@ The `retention_period` - (Optional) How long, in days, message data is kept for 
 In addition to all arguments above, the following attributes are exported:
 
 * `id` - The name of the input
+* `arn` - The ARN of the channel.
 
 ## Import
 

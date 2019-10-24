@@ -24,31 +24,32 @@ func TestAccAWSIoTAnalyticsChannel_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSIoTAnalyticsChannelExists_basic("aws_iotanalytics_channel.channel"),
 					resource.TestCheckResourceAttr("aws_iotanalytics_channel.channel", "name", fmt.Sprintf("test_channel_%s", rString)),
+					resource.TestCheckResourceAttr("aws_iotanalytics_channel.channel", "tags.tagKey", "tagValue"),
 				),
 			},
 		},
 	})
 }
 
-// func TestAccAWSIoTAnalyticsChannel_CustomerManagedS3(t *testing.T) {
-// 	rString := acctest.RandString(5)
+func TestAccAWSIoTAnalyticsChannel_CustomerManagedS3(t *testing.T) {
+	rString := acctest.RandString(5)
 
-// 	resource.ParallelTest(t, resource.TestCase{
-// 		PreCheck:     func() { testAccPreCheck(t) },
-// 		Providers:    testAccProviders,
-// 		CheckDestroy: testAccCheckAWSIoTAnalyticsChannelDestroy,
-// 		Steps: []resource.TestStep{
-// 			{
-// 				Config: testAccAWSIoTAnalyticsChannel_CustomerManagedS3(rString),
-// 				Check: resource.ComposeTestCheckFunc(
-// 					testAccCheckAWSIoTAnalyticsChannelExists_basic("aws_iotanalytics_channel.channel"),
-// 					resource.TestCheckResourceAttr("aws_iotanalytics_channel.channel", "name", fmt.Sprintf("test_channel_%s", rString)),
-// 					testAccCheckAWSIoTAnalyticsChannel_CustomerManagedS3,
-// 				),
-// 			},
-// 		},
-// 	})
-// }
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSIoTAnalyticsChannelDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSIoTAnalyticsChannel_CustomerManagedS3(rString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSIoTAnalyticsChannelExists_basic("aws_iotanalytics_channel.channel"),
+					resource.TestCheckResourceAttr("aws_iotanalytics_channel.channel", "name", fmt.Sprintf("test_channel_%s", rString)),
+					testAccCheckAWSIoTAnalyticsChannel_CustomerManagedS3,
+				),
+			},
+		},
+	})
+}
 
 func TestAccAWSIoTAnalyticsChannel_RetentionPeriodNumberOfDays(t *testing.T) {
 	rString := acctest.RandString(5)
@@ -233,6 +234,10 @@ func testAccAWSIoTAnalyticsChannel_basic(rString string) string {
 	return fmt.Sprintf(`
 resource "aws_iotanalytics_channel" "channel" {
   name = "test_channel_%[1]s"
+
+  tags = {
+	"tagKey" = "tagValue",
+  }
 
   storage {
 	  service_managed_s3 {}

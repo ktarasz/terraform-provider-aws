@@ -84,6 +84,11 @@ func resourceAwsIotAnalyticsChannel() *schema.Resource {
 				MaxItems: 1,
 				Elem:     generateRetentionPeriodSchema(),
 			},
+			"tags": tagsSchema(),
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -134,6 +139,10 @@ func resourceAwsIotAnalyticsChannelCreate(d *schema.ResourceData, meta interface
 		ChannelName: aws.String(d.Get("name").(string)),
 	}
 
+	if tags := d.Get("tags").(map[string]interface{}); len(tags) > 0 {
+		params.Tags = tagsFromMapIotAnalytics(tags)
+	}
+
 	channelStorageSet := d.Get("storage").(*schema.Set).List()
 	if len(channelStorageSet) >= 1 {
 		rawChannelStorage := channelStorageSet[0].(map[string]interface{})
@@ -160,14 +169,13 @@ func resourceAwsIotAnalyticsChannelCreate(d *schema.ResourceData, meta interface
 	// second time(when all required resources are created) channel will be created successfully.
 	// So we suppose that problem is that AWS return response of successful role arn creation before
 	// process of creation is really ended, and then creation of channel model fails.
-	for _, sleepSeconds := range retrySecondsList {
-		err = nil
-
+	for index, sleepSeconds := range retrySecondsList {
 		_, err = conn.CreateChannel(params)
 		if err == nil {
 			break
+		} else if err != nil && index != len(retrySecondsList)-1 {
+			err = nil
 		}
-
 		time.Sleep(time.Duration(sleepSeconds) * time.Second)
 	}
 
@@ -240,7 +248,11 @@ func resourceAwsIotAnalyticsChannelRead(d *schema.ResourceData, meta interface{}
 	d.Set("storage", wrapMapInList(storage))
 	retentionPeriod := flattenRetentionPeriod(out.Channel.RetentionPeriod)
 	d.Set("retention_period", wrapMapInList(retentionPeriod))
+	d.Set("arn", out.Channel.Arn)
 
+	if err := getTagsIotAnalytics(conn, d); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -273,18 +285,21 @@ func resourceAwsIotAnalyticsChannelUpdate(d *schema.ResourceData, meta interface
 	// Full explanation can be found in function `resourceAwsIotAnalyticsChannelCreate`.
 	// We suppose that such error can appear during update also, if you update
 	// role arn.
-	for _, sleepSeconds := range retrySecondsList {
-		err = nil
-
+	for index, sleepSeconds := range retrySecondsList {
 		_, err = conn.UpdateChannel(params)
 		if err == nil {
 			break
+		} else if err != nil && index != len(retrySecondsList)-1 {
+			err = nil
 		}
-
 		time.Sleep(time.Duration(sleepSeconds) * time.Second)
 	}
 
 	if err != nil {
+		return err
+	}
+
+	if err := setTagsIotAnalytics(conn, d); err != nil {
 		return err
 	}
 
