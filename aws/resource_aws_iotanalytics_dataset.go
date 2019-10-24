@@ -9,89 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
-func generateVariableSchema() *schema.Resource {
-	return &schema.Resource{
-		Schema: map[string]*schema.Schema{
-			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"string_value": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"double_value": {
-				Type:     schema.TypeFloat,
-				Optional: true,
-			},
-			"dataset_content_version_value": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				MaxItems: 1,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"dataset_name": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-					},
-				},
-			},
-			"output_file_uri_value": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				MaxItems: 1,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"file_name": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func generateContainerDatasetActionSchema() *schema.Resource {
-	return &schema.Resource{
-		Schema: map[string]*schema.Schema{
-			"image": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"execution_role_arn": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validateArn,
-			},
-			"resource_configuration": {
-				Type:     schema.TypeSet,
-				Required: true,
-				MaxItems: 1,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"compute_type": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-						"volume_size_in_gb": {
-							Type:     schema.TypeInt,
-							Required: true,
-						},
-					},
-				},
-			},
-			"variable": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				Elem:     generateVariableSchema(),
-			},
-		},
-	}
-}
-
 func generateQueryFilterSchema() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
@@ -318,65 +235,13 @@ func resourceAwsIotAnalyticsDataset() *schema.Resource {
 				MaxItems: 1,
 				Elem:     generateVersioningConfigurationSchema(),
 			},
+			"tags": tagsSchema(),
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
-}
-
-func parseVariable(rawVariable map[string]interface{}) *iotanalytics.Variable {
-	variable := &iotanalytics.Variable{
-		Name: aws.String(rawVariable["name"].(string)),
-	}
-
-	if v, ok := rawVariable["string_value"]; ok {
-		variable.StringValue = aws.String(v.(string))
-	}
-
-	if v, ok := rawVariable["double_value"]; ok {
-		variable.DoubleValue = aws.Float64(v.(float64))
-	}
-
-	rawDatasetContentVersionValueSet := rawVariable["dataset_content_version_value"].(*schema.Set).List()
-	if len(rawDatasetContentVersionValueSet) > 0 {
-		rawDatasetContentVersionValue := rawDatasetContentVersionValueSet[0].(map[string]interface{})
-		datasetContentVersionValue := &iotanalytics.DatasetContentVersionValue{
-			DatasetName: aws.String(rawDatasetContentVersionValue["dataset_name"].(string)),
-		}
-		variable.DatasetContentVersionValue = datasetContentVersionValue
-	}
-
-	rawOutputFileUriValueSet := rawVariable["output_file_uri_value"].(*schema.Set).List()
-	if len(rawOutputFileUriValueSet) > 0 {
-		rawOutputFileUriValue := rawOutputFileUriValueSet[0].(map[string]interface{})
-		outputFileUriValue := &iotanalytics.OutputFileUriValue{
-			FileName: aws.String(rawOutputFileUriValue["file_name"].(string)),
-		}
-		variable.OutputFileUriValue = outputFileUriValue
-	}
-
-	return variable
-}
-
-func parseContainerAction(rawContainerAction map[string]interface{}) *iotanalytics.ContainerDatasetAction {
-	containerAction := &iotanalytics.ContainerDatasetAction{
-		Image:            aws.String(rawContainerAction["image"].(string)),
-		ExecutionRoleArn: aws.String(rawContainerAction["execution_role_arn"].(string)),
-	}
-
-	rawResourceConfiguration := rawContainerAction["resource_configuration"].(*schema.Set).List()[0].(map[string]interface{})
-	containerAction.ResourceConfiguration = &iotanalytics.ResourceConfiguration{
-		ComputeType:    aws.String(rawResourceConfiguration["compute_type"].(string)),
-		VolumeSizeInGB: aws.Int64(int64(rawResourceConfiguration["volume_size_in_gb"].(int))),
-	}
-
-	variables := make([]*iotanalytics.Variable, 0)
-	rawVariables := rawContainerAction["variable"].(*schema.Set).List()
-	for _, rawVar := range rawVariables {
-		variable := parseVariable(rawVar.(map[string]interface{}))
-		variables = append(variables, variable)
-	}
-	containerAction.Variables = variables
-
-	return containerAction
 }
 
 func parseQueryFilter(rawQueryFilter map[string]interface{}) *iotanalytics.QueryFilter {
@@ -517,6 +382,10 @@ func resourceAwsIotAnalyticsDatasetCreate(d *schema.ResourceData, meta interface
 		DatasetName: aws.String(name),
 	}
 
+	if tags := d.Get("tags").(map[string]interface{}); len(tags) > 0 {
+		params.Tags = tagsFromMapIotAnalytics(tags)
+	}
+
 	rawActions := d.Get("action").(*schema.Set).List()
 	actions := make([]*iotanalytics.DatasetAction, 0)
 	for _, rawAction := range rawActions {
@@ -563,55 +432,6 @@ func resourceAwsIotAnalyticsDatasetCreate(d *schema.ResourceData, meta interface
 	d.SetId(name)
 
 	return resourceAwsIotAnalyticsDatasetRead(d, meta)
-}
-
-func flattenVariable(variable *iotanalytics.Variable) map[string]interface{} {
-	rawVariable := make(map[string]interface{})
-	rawVariable["name"] = aws.StringValue(variable.Name)
-
-	if variable.StringValue != nil {
-		rawVariable["string_value"] = aws.StringValue(variable.StringValue)
-	}
-
-	if variable.DoubleValue != nil {
-		rawVariable["string_value"] = aws.StringValue(variable.StringValue)
-	}
-
-	if variable.OutputFileUriValue != nil {
-		outputFileUriValue := map[string]interface{}{
-			"file_name": aws.StringValue(variable.OutputFileUriValue.FileName),
-		}
-		rawVariable["output_file_uri_value"] = wrapMapInList(outputFileUriValue)
-	}
-
-	if variable.DatasetContentVersionValue != nil {
-		datasetContentVersionValue := map[string]interface{}{
-			"dataset_name": aws.StringValue(variable.DatasetContentVersionValue.DatasetName),
-		}
-		rawVariable["dataset_content_version_value"] = wrapMapInList(datasetContentVersionValue)
-	}
-
-	return rawVariable
-}
-
-func flattenContainerAction(containerAction *iotanalytics.ContainerDatasetAction) map[string]interface{} {
-	rawContainerAction := make(map[string]interface{})
-	rawContainerAction["image"] = aws.StringValue(containerAction.Image)
-	rawContainerAction["execution_role_arn"] = aws.StringValue(containerAction.ExecutionRoleArn)
-
-	rawResourceConfiguration := map[string]interface{}{
-		"compute_type":      aws.StringValue(containerAction.ResourceConfiguration.ComputeType),
-		"volume_size_in_gb": aws.Int64Value(containerAction.ResourceConfiguration.VolumeSizeInGB),
-	}
-	rawContainerAction["resource_configuration"] = wrapMapInList(rawResourceConfiguration)
-
-	rawVariables := make([]map[string]interface{}, 0)
-	for _, variable := range containerAction.Variables {
-		rawVariables = append(rawVariables, flattenVariable(variable))
-	}
-	rawContainerAction["variable"] = rawVariables
-
-	return rawContainerAction
 }
 
 func flattenQueryFilter(queryFilter *iotanalytics.QueryFilter) map[string]interface{} {
@@ -769,6 +589,12 @@ func resourceAwsIotAnalyticsDatasetRead(d *schema.ResourceData, meta interface{}
 
 	rawVersioningConfiguration := flattenVersioningConfiguration(out.Dataset.VersioningConfiguration)
 	d.Set("versioning_configuration", wrapMapInList(rawVersioningConfiguration))
+	d.Set("arn", out.Dataset.Arn)
+
+	if err := getTagsIotAnalytics(conn, d); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -820,6 +646,10 @@ func resourceAwsIotAnalyticsDatasetUpdate(d *schema.ResourceData, meta interface
 	_, err := conn.UpdateDataset(params)
 
 	if err != nil {
+		return err
+	}
+
+	if err := setTagsIotAnalytics(conn, d); err != nil {
 		return err
 	}
 
