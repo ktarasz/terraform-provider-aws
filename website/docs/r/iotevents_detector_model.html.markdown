@@ -41,6 +41,7 @@ resource "aws_iotevents_detector_model" "detector" {
 
 * `name` - (Required) The name of the detector.
 * `description` - (Optional) The description of the detector.
+* `evaluation_method` - (Optional) Default 'BATCH'. When set to SERIAL, variables are updated and event conditions evaluated in the order that the events are defined. When set to BATCH, variables are updated and events performed only after all event conditions are evaluated.
 * `key` - (Optional) The input attribute key used to identify a device or system in order to 
 create a detector (an instance of the detector model) and then to route each input received to 
 the appropriate detector (instance). This parameter uses a JSON-path expression to specify the 
