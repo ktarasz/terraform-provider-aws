@@ -26,6 +26,7 @@ func TestAccAWSIoTEventsDetectorModel_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("aws_iotevents_detector_model.detector", "name", fmt.Sprintf("test_detector_%s", rString)),
 					resource.TestCheckResourceAttr("aws_iotevents_detector_model.detector", "description", "Example detector model"),
 					resource.TestCheckResourceAttr("aws_iotevents_detector_model.detector", "tags.tagKey", "tagValue"),
+					resource.TestCheckResourceAttr("aws_iotevents_detector_model.detector", "evaluation_method", "SERIAL"),
 					testAccDetectorModleBasic(rString),
 				),
 			},
@@ -657,6 +658,7 @@ resource "aws_iotevents_detector_model" "detector" {
   name = "test_detector_%[1]s"
   description = "Example detector model"
   role_arn = "${aws_iam_role.iotevents_role.arn}"
+	evaluation_method = "SERIAL"
 
   depends_on = [
 	aws_iotevents_input.test_input,

@@ -312,6 +312,15 @@ func resourceAwsIotEventsDetectorModel() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"evaluation_method": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					"SERIAL",
+					"BATCH",
+				}, false),
+				Default: "BATCH",
+			},
 			"role_arn": {
 				Type:         schema.TypeString,
 				Required:     true,
@@ -570,11 +579,13 @@ func resourceAwsIotDetectorCreate(d *schema.ResourceData, meta interface{}) erro
 
 	detectorName := d.Get("name").(string)
 	roleArn := d.Get("role_arn").(string)
+	evaluationMethod := d.Get("evaluation_method").(string)
 
 	params := &iotevents.CreateDetectorModelInput{
 		DetectorModelName:       aws.String(detectorName),
 		DetectorModelDefinition: detectorDefinitionParams,
 		RoleArn:                 aws.String(roleArn),
+		EvaluationMethod:        aws.String(evaluationMethod),
 		Tags:                    tagsFromMapIotEvents(d.Get("tags").(map[string]interface{})),
 	}
 
@@ -812,6 +823,7 @@ func resourceAwsIotDetectorRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("description", out.DetectorModel.DetectorModelConfiguration.DetectorModelDescription)
 	d.Set("key", out.DetectorModel.DetectorModelConfiguration.Key)
 	d.Set("role_arn", out.DetectorModel.DetectorModelConfiguration.RoleArn)
+	d.Set("evaluation_method", out.DetectorModel.DetectorModelConfiguration.EvaluationMethod)
 	detectorModelDefinition := []map[string]interface{}{flattenDetectorModelDefinition(out.DetectorModel.DetectorModelDefinition)}
 	d.Set("definition", detectorModelDefinition)
 	d.Set("arn", out.DetectorModel.DetectorModelConfiguration.DetectorModelArn)
@@ -831,10 +843,12 @@ func resourceAwsIotDetectorUpdate(d *schema.ResourceData, meta interface{}) erro
 
 	detectorName := d.Get("name").(string)
 	roleArn := d.Get("role_arn").(string)
+	evaluationMethod := d.Get("evaluation_method").(string)
 
 	params := &iotevents.UpdateDetectorModelInput{
 		DetectorModelName:       aws.String(detectorName),
 		DetectorModelDefinition: detectorDefinitionParams,
+		EvaluationMethod:        aws.String(evaluationMethod),
 		RoleArn:                 aws.String(roleArn),
 	}
 
