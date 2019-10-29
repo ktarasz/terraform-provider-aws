@@ -28,6 +28,7 @@ func TestAccAWSIoTTopicRule_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("aws_iot_topic_rule.rule", "enabled", "true"),
 					resource.TestCheckResourceAttr("aws_iot_topic_rule.rule", "sql", "SELECT * FROM 'topic/test'"),
 					resource.TestCheckResourceAttr("aws_iot_topic_rule.rule", "sql_version", "2015-10-08"),
+					resource.TestCheckResourceAttr("aws_iot_topic_rule.rule", "tags.tagKey", "tagValue"),
 				),
 			},
 			{
@@ -459,6 +460,10 @@ resource "aws_iot_topic_rule" "rule" {
   enabled = true
   sql = "SELECT * FROM 'topic/test'"
   sql_version = "2015-10-08"
+
+  tags = {
+	"tagKey" = "tagValue",
+  } 
 
 }
 `, rName)
