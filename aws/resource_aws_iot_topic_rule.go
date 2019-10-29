@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -314,6 +315,7 @@ func resourceAwsIotTopicRule() *schema.Resource {
 					},
 				},
 			},
+			"tags": tagsSchema(),
 			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -540,6 +542,20 @@ func resourceAwsIotTopicRuleCreate(d *schema.ResourceData, meta interface{}) err
 		RuleName:         aws.String(ruleName),
 		TopicRulePayload: createTopicRulePayload(d),
 	}
+
+	if tags := d.Get("tags").(map[string]interface{}); len(tags) > 0 {
+		var tagString string
+		for key, value := range tags {
+			tagString = fmt.Sprintf("%s%s=%s&", tagString, key, value)
+		}
+
+		if last := len(tagString) - 1; last >= 0 && tagString[last] == '&' {
+			tagString = tagString[:last]
+		}
+
+		params.Tags = aws.String(tagString)
+	}
+
 	log.Printf("[DEBUG] Creating IoT Topic Rule: %s", params)
 	_, err := conn.CreateTopicRule(params)
 
@@ -583,6 +599,10 @@ func resourceAwsIotTopicRuleRead(d *schema.ResourceData, meta interface{}) error
 	d.Set("sns", flattenIoTRuleSnsActions(out.Rule.Actions))
 	d.Set("sqs", flattenIoTRuleSqsActions(out.Rule.Actions))
 
+	if err := getTagsIot(conn, d); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -597,6 +617,10 @@ func resourceAwsIotTopicRuleUpdate(d *schema.ResourceData, meta interface{}) err
 	_, err := conn.ReplaceTopicRule(params)
 
 	if err != nil {
+		return err
+	}
+
+	if err := setTagsIot(conn, d); err != nil {
 		return err
 	}
 
