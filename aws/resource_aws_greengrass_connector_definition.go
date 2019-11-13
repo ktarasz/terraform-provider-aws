@@ -66,15 +66,6 @@ func resourceAwsGreengrassConnectorDefinition() *schema.Resource {
 	}
 }
 
-func convertInterfaceMapToStringMap(interfaceMap map[string]interface{}) map[string]*string {
-	stringMap := make(map[string]*string)
-	for k, v := range interfaceMap {
-		strVal := v.(string)
-		stringMap[k] = &strVal
-	}
-	return stringMap
-}
-
 func createConnectorDefinitionVersion(d *schema.ResourceData, conn *greengrass.Greengrass) error {
 	var rawData map[string]interface{}
 	if v := d.Get("connector_definition_version").(*schema.Set).List(); len(v) == 0 {

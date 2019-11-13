@@ -5624,3 +5624,12 @@ func wrapMapInList(mapping map[string]interface{}) []map[string]interface{} {
 		return []map[string]interface{}{mapping}
 	}
 }
+
+func convertInterfaceMapToStringMap(interfaceMap map[string]interface{}) map[string]*string {
+	stringMap := make(map[string]*string)
+	for k, v := range interfaceMap {
+		strVal := v.(string)
+		stringMap[k] = &strVal
+	}
+	return stringMap
+}
