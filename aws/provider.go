@@ -999,6 +999,7 @@ func init() {
 		"glacier",
 		"globalaccelerator",
 		"glue",
+		"greengrass",
 		"guardduty",
 		"iam",
 		"inspector",
