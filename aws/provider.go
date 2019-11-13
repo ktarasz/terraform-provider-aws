@@ -547,6 +547,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_greengrass_connector_definition":                     resourceAwsGreengrassConnectorDefinition(),
 			"aws_greengrass_core_definition":                          resourceAwsGreengrassCoreDefinition(),
 			"aws_greengrass_device_definition":                        resourceAwsGreengrassDeviceDefinition(),
+			"aws_greengrass_function_definition":                      resourceAwsGreengrassFunctionDefinition(),
 			"aws_iam_access_key":                                      resourceAwsIamAccessKey(),
 			"aws_iam_account_alias":                                   resourceAwsIamAccountAlias(),
 			"aws_iam_account_password_policy":                         resourceAwsIamAccountPasswordPolicy(),
