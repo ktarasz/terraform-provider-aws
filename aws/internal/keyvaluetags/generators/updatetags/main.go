@@ -28,6 +28,7 @@ var serviceNames = []string{
 	"athena",
 	"backup",
 	"cloudhsmv2",
+	"cloudtrail",
 	"cloudwatch",
 	"cloudwatchevents",
 	"cloudwatchlogs",
@@ -44,6 +45,7 @@ var serviceNames = []string{
 	"devicefarm",
 	"directconnect",
 	"directoryservice",
+	"dlm",
 	"docdb",
 	"dynamodb",
 	"ec2",
@@ -84,6 +86,7 @@ var serviceNames = []string{
 	"redshift",
 	"resourcegroups",
 	"route53resolver",
+	"sagemaker",
 	"secretsmanager",
 	"securityhub",
 	"sfn",
@@ -94,6 +97,7 @@ var serviceNames = []string{
 	"swf",
 	"transfer",
 	"waf",
+	"wafregional",
 	"workspaces",
 }
 
@@ -115,6 +119,7 @@ func main() {
 		"TagInputIdentifierRequiresSlice": ServiceTagInputIdentifierRequiresSlice,
 		"TagInputResourceTypeField":       ServiceTagInputResourceTypeField,
 		"TagInputTagsField":               ServiceTagInputTagsField,
+		"TagPackage":                      keyvaluetags.ServiceTagPackage,
 		"Title":                           strings.Title,
 		"UntagFunction":                   ServiceUntagFunction,
 		"UntagInputRequiresTagType":       ServiceUntagInputRequiresTagType,
@@ -178,7 +183,7 @@ func {{ . | Title }}UpdateTags(conn {{ . | ClientType }}, identifier string{{ if
 	newTags := New(newTagsMap)
 
 	if removedTags := oldTags.Removed(newTags); len(removedTags) > 0 {
-		input := &{{ . }}.{{ . | UntagFunction }}Input{
+		input := &{{ . | TagPackage }}.{{ . | UntagFunction }}Input{
 			{{- if . | TagInputIdentifierRequiresSlice }}
 			{{ . | TagInputIdentifierField }}:   aws.StringSlice([]string{identifier}),
 			{{- else }}
@@ -202,7 +207,7 @@ func {{ . | Title }}UpdateTags(conn {{ . | ClientType }}, identifier string{{ if
 	}
 
 	if updatedTags := oldTags.Updated(newTags); len(updatedTags) > 0 {
-		input := &{{ . }}.{{ . | TagFunction }}Input{
+		input := &{{ . | TagPackage }}.{{ . | TagFunction }}Input{
 			{{- if . | TagInputIdentifierRequiresSlice }}
 			{{ . | TagInputIdentifierField }}:   aws.StringSlice([]string{identifier}),
 			{{- else }}
@@ -233,6 +238,8 @@ func ServiceTagFunction(serviceName string) string {
 		return "AddTagsToCertificate"
 	case "acmpca":
 		return "TagCertificateAuthority"
+	case "cloudtrail":
+		return "AddTags"
 	case "cloudwatchlogs":
 		return "TagLogGroup"
 	case "databasemigrationservice":
@@ -294,6 +301,8 @@ func ServiceTagInputIdentifierField(serviceName string) string {
 	case "athena":
 		return "ResourceARN"
 	case "cloudhsmv2":
+		return "ResourceId"
+	case "cloudtrail":
 		return "ResourceId"
 	case "cloudwatch":
 		return "ResourceARN"
@@ -365,6 +374,8 @@ func ServiceTagInputIdentifierField(serviceName string) string {
 		return "Arn"
 	case "waf":
 		return "ResourceARN"
+	case "wafregional":
+		return "ResourceARN"
 	case "workspaces":
 		return "ResourceId"
 	default:
@@ -389,6 +400,8 @@ func ServiceTagInputTagsField(serviceName string) string {
 	switch serviceName {
 	case "cloudhsmv2":
 		return "TagList"
+	case "cloudtrail":
+		return "TagsList"
 	case "elasticsearchservice":
 		return "TagList"
 	case "glue":
@@ -415,6 +428,8 @@ func ServiceUntagFunction(serviceName string) string {
 		return "RemoveTagsFromCertificate"
 	case "acmpca":
 		return "UntagCertificateAuthority"
+	case "cloudtrail":
+		return "RemoveTags"
 	case "cloudwatchlogs":
 		return "UntagLogGroup"
 	case "databasemigrationservice":
@@ -473,6 +488,8 @@ func ServiceUntagInputRequiresTagType(serviceName string) string {
 		return "yes"
 	case "acmpca":
 		return "yes"
+	case "cloudtrail":
+		return "yes"
 	case "ec2":
 		return "yes"
 	default:
@@ -491,6 +508,8 @@ func ServiceUntagInputTagsField(serviceName string) string {
 		return "TagKeyList"
 	case "cloudhsmv2":
 		return "TagKeyList"
+	case "cloudtrail":
+		return "TagsList"
 	case "cloudwatchlogs":
 		return "Tags"
 	case "datasync":

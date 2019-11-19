@@ -26,6 +26,7 @@ var serviceNames = []string{
 	"athena",
 	"backup",
 	"cloudhsmv2",
+	"cloudtrail",
 	"cloudwatch",
 	"cloudwatchevents",
 	"cloudwatchlogs",
@@ -40,6 +41,7 @@ var serviceNames = []string{
 	"dax",
 	"devicefarm",
 	"directoryservice",
+	"dlm",
 	"docdb",
 	"dynamodb",
 	"ecr",
@@ -86,6 +88,7 @@ var serviceNames = []string{
 	"swf",
 	"transfer",
 	"waf",
+	"wafregional",
 	"workspaces",
 }
 
@@ -107,6 +110,7 @@ func main() {
 		"ListTagsInputIdentifierRequiresSlice": ServiceListTagsInputIdentifierRequiresSlice,
 		"ListTagsInputResourceTypeField":       ServiceListTagsInputResourceTypeField,
 		"ListTagsOutputTagsField":              ServiceListTagsOutputTagsField,
+		"TagPackage":                           keyvaluetags.ServiceTagPackage,
 		"Title":                                strings.Title,
 	}
 
@@ -161,7 +165,7 @@ import (
 // The identifier is typically the Amazon Resource Name (ARN), although
 // it may also be a different identifier depending on the service.
 func {{ . | Title }}ListTags(conn {{ . | ClientType }}, identifier string{{ if . | ListTagsInputResourceTypeField }}, resourceType string{{ end }}) (KeyValueTags, error) {
-	input := &{{ . }}.{{ . | ListTagsFunction }}Input{
+	input := &{{ . | TagPackage  }}.{{ . | ListTagsFunction }}Input{
 		{{- if . | ListTagsInputIdentifierRequiresSlice }}
 		{{ . | ListTagsInputIdentifierField }}:   aws.StringSlice([]string{identifier}),
 		{{- else }}
@@ -193,6 +197,8 @@ func ServiceListTagsFunction(serviceName string) string {
 	case "backup":
 		return "ListTags"
 	case "cloudhsmv2":
+		return "ListTags"
+	case "cloudtrail":
 		return "ListTags"
 	case "cloudwatchlogs":
 		return "ListTagsLogGroup"
@@ -244,6 +250,8 @@ func ServiceListTagsInputIdentifierField(serviceName string) string {
 		return "ResourceARN"
 	case "cloudhsmv2":
 		return "ResourceId"
+	case "cloudtrail":
+		return "ResourceIdList"
 	case "cloudwatch":
 		return "ResourceARN"
 	case "cloudwatchevents":
@@ -302,6 +310,8 @@ func ServiceListTagsInputIdentifierField(serviceName string) string {
 		return "ResourceId"
 	case "waf":
 		return "ResourceARN"
+	case "wafregional":
+		return "ResourceARN"
 	default:
 		return "ResourceArn"
 	}
@@ -310,6 +320,8 @@ func ServiceListTagsInputIdentifierField(serviceName string) string {
 // ServiceTagInputIdentifierRequiresSlice determines if the service tagging resource field requires a slice.
 func ServiceListTagsInputIdentifierRequiresSlice(serviceName string) string {
 	switch serviceName {
+	case "cloudtrail":
+		return "yes"
 	case "elbv2":
 		return "yes"
 	default:
@@ -330,10 +342,10 @@ func ServiceListTagsInputResourceTypeField(serviceName string) string {
 // ServiceListTagsOutputTagsField determines the service tag field.
 func ServiceListTagsOutputTagsField(serviceName string) string {
 	switch serviceName {
-	case "waf":
-		return "TagInfoForResource.TagList"
 	case "cloudhsmv2":
 		return "TagList"
+	case "cloudtrail":
+		return "ResourceTagList[0].TagsList"
 	case "databasemigrationservice":
 		return "TagList"
 	case "docdb":
@@ -352,6 +364,10 @@ func ServiceListTagsOutputTagsField(serviceName string) string {
 		return "TagList"
 	case "ssm":
 		return "TagList"
+	case "waf":
+		return "TagInfoForResource.TagList"
+	case "wafregional":
+		return "TagInfoForResource.TagList"
 	case "workspaces":
 		return "TagList"
 	default:
