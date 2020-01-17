@@ -152,63 +152,54 @@ func resourceAwsGreengrassResourceDefinition() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"resource_definition_version": {
+			"resource": {
 				Type:     schema.TypeSet,
 				Optional: true,
-				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"resource": {
-							Type:     schema.TypeSet,
-							Optional: true,
+						"id": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"data_container": {
+							Type:     schema.TypeList,
+							Required: true,
+							MaxItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"id": {
-										Type:     schema.TypeString,
-										Required: true,
-									},
-									"name": {
-										Type:     schema.TypeString,
-										Required: true,
-									},
-									"data_container": {
+									"local_device_resource_data": {
 										Type:     schema.TypeList,
-										Required: true,
+										Optional: true,
 										MaxItems: 1,
-										Elem: &schema.Resource{
-											Schema: map[string]*schema.Schema{
-												"local_device_resource_data": {
-													Type:     schema.TypeList,
-													Optional: true,
-													MaxItems: 1,
-													Elem:     generateLocalDeviceResourceDataSchema(),
-												},
-												"local_volume_resource_data": {
-													Type:     schema.TypeList,
-													Optional: true,
-													MaxItems: 1,
-													Elem:     generateLocalVolumeResourceDataSchema(),
-												},
-												"s3_machine_learning_model_resource_data": {
-													Type:     schema.TypeList,
-													Optional: true,
-													MaxItems: 1,
-													Elem:     generateS3MachineLearningModelResourceDataSchema(),
-												},
-												"sagemaker_machine_learning_model_resource_data": {
-													Type:     schema.TypeList,
-													Optional: true,
-													MaxItems: 1,
-													Elem:     generateSageMakerMachineLearningModelResourceDataSchema(),
-												},
-												"secrets_manager_secret_resource_data": {
-													Type:     schema.TypeList,
-													Optional: true,
-													MaxItems: 1,
-													Elem:     generateSecretsManagerSecretResourceDataSchema(),
-												},
-											},
-										},
+										Elem:     generateLocalDeviceResourceDataSchema(),
+									},
+									"local_volume_resource_data": {
+										Type:     schema.TypeList,
+										Optional: true,
+										MaxItems: 1,
+										Elem:     generateLocalVolumeResourceDataSchema(),
+									},
+									"s3_machine_learning_model_resource_data": {
+										Type:     schema.TypeList,
+										Optional: true,
+										MaxItems: 1,
+										Elem:     generateS3MachineLearningModelResourceDataSchema(),
+									},
+									"sagemaker_machine_learning_model_resource_data": {
+										Type:     schema.TypeList,
+										Optional: true,
+										MaxItems: 1,
+										Elem:     generateSageMakerMachineLearningModelResourceDataSchema(),
+									},
+									"secrets_manager_secret_resource_data": {
+										Type:     schema.TypeList,
+										Optional: true,
+										MaxItems: 1,
+										Elem:     generateSecretsManagerSecretResourceDataSchema(),
 									},
 								},
 							},
@@ -331,11 +322,9 @@ func parseResourceDataContainer(rawData map[string]interface{}) *greengrass.Reso
 }
 
 func createResourceDefinitionVersion(d *schema.ResourceData, conn *greengrass.Greengrass) error {
-	var rawData map[string]interface{}
-	if v := d.Get("resource_definition_version").(*schema.Set).List(); len(v) == 0 {
+	var rawData []interface{}
+	if rawData = d.Get("resource").(*schema.Set).List(); len(rawData) == 0 {
 		return nil
-	} else {
-		rawData = v[0].(map[string]interface{})
 	}
 
 	params := &greengrass.CreateResourceDefinitionVersionInput{
@@ -347,7 +336,7 @@ func createResourceDefinitionVersion(d *schema.ResourceData, conn *greengrass.Gr
 	}
 
 	resources := make([]*greengrass.Resource, 0)
-	for _, resourceToCast := range rawData["resource"].(*schema.Set).List() {
+	for _, resourceToCast := range rawData {
 		rawResource := resourceToCast.(map[string]interface{})
 		resource := &greengrass.Resource{
 			Id:   aws.String(rawResource["id"].(string)),
@@ -521,7 +510,6 @@ func setResourceDefinitionVersion(latestVersion string, d *schema.ResourceData, 
 		return err
 	}
 
-	rawVersion := make(map[string]interface{})
 	d.Set("latest_definition_version_arn", *out.Arn)
 
 	rawResourceList := make([]map[string]interface{}, 0)
@@ -533,9 +521,7 @@ func setResourceDefinitionVersion(latestVersion string, d *schema.ResourceData, 
 		rawResourceList = append(rawResourceList, rawResource)
 	}
 
-	rawVersion["resource"] = rawResourceList
-
-	d.Set("resource_definition_version", []map[string]interface{}{rawVersion})
+	d.Set("resource", rawResourceList)
 
 	return nil
 }
@@ -592,7 +578,7 @@ func resourceAwsGreengrassResourceDefinitionUpdate(d *schema.ResourceData, meta 
 		return err
 	}
 
-	if d.HasChange("resource_definition_version") {
+	if d.HasChange("resource") {
 		err = createResourceDefinitionVersion(d, conn)
 		if err != nil {
 			return err
