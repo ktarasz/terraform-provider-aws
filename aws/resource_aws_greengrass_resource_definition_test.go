@@ -37,6 +37,84 @@ func TestAccAWSGreengrassResourceDefinition_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSGreengrassResourceDefinition_versionNoop(t *testing.T) {
+	rString := acctest.RandString(8)
+	resourceName := "aws_greengrass_resource_definition.test"
+
+	var resource_version_arn_a string
+	var resource_version_arn_b string
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSGreengrassResourceDefinitionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSGreengrassResourceDefinitionConfig_LocalDevice(rString),
+				Check:  testAccAWSGreengrassResourceDefinitionCheckAndGetResourceVersion(resourceName, &resource_version_arn_a),
+			},
+			{
+				Config: testAccAWSGreengrassResourceDefinitionConfig_LocalDevice(rString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccAWSGreengrassResourceDefinitionCheckAndGetResourceVersion(resourceName, &resource_version_arn_b),
+					func() resource.TestCheckFunc {
+						return func(s *terraform.State) error {
+							if resource_version_arn_a != resource_version_arn_b {
+								return fmt.Errorf("Resource version ARN %s has changed to %s", resource_version_arn_a, resource_version_arn_b)
+							}
+							return nil
+						}
+					}(),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccAWSGreengrassResourceDefinition_versionDiff(t *testing.T) {
+	rString := acctest.RandString(8)
+	resourceName := "aws_greengrass_resource_definition.test"
+
+	var resource_version_arn_a string
+	var resource_version_arn_b string
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSGreengrassResourceDefinitionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSGreengrassResourceDefinitionConfig_LocalDevice(rString),
+				Check:  testAccAWSGreengrassResourceDefinitionCheckAndGetResourceVersion(resourceName, &resource_version_arn_a),
+			},
+			{
+				Config: testAccAWSGreengrassResourceDefinitionConfig_LocalVolume(rString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccAWSGreengrassResourceDefinitionCheckAndGetResourceVersion(resourceName, &resource_version_arn_b),
+					func() resource.TestCheckFunc {
+						return func(s *terraform.State) error {
+							if resource_version_arn_a == resource_version_arn_b {
+								return fmt.Errorf("Resource version ARN %s has not changed", resource_version_arn_b)
+							}
+							return nil
+						}
+					}(),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccAWSGreengrassResourceDefinition_LocalDevice(t *testing.T) {
 	rString := acctest.RandString(8)
 	resourceName := "aws_greengrass_resource_definition.test"
@@ -185,6 +263,24 @@ func testAccCheckAWSGreengrassResourceDefinitionDestroy(s *terraform.State) erro
 		}
 	}
 	return nil
+}
+
+func testAccAWSGreengrassResourceDefinitionCheckAndGetResourceVersion(resourceName string, resource_version_arn *string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("Resource not found: %s", resourceName)
+		}
+
+		latest_definition_version_arn, ok := rs.Primary.Attributes["latest_definition_version_arn"]
+		if !ok {
+			return fmt.Errorf("Latest definition version ARN does not exist for %s", resourceName)
+		}
+
+		*resource_version_arn = latest_definition_version_arn
+
+		return nil
+	}
 }
 
 func testAccAWSGreengrassResourceDefinitionConfig_basic(rString string) string {
