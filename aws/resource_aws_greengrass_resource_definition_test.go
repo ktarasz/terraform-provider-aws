@@ -203,21 +203,19 @@ func testAccAWSGreengrassResourceDefinitionConfig_LocalDevice(rString string) st
 	return fmt.Sprintf(`
 resource "aws_greengrass_resource_definition" "test" {
 	name = "resource_definition_%[1]s"
-	resource_definition_version {
-		resource {
-			id = "test_id"
-			name = "test_name"
-			data_container {
-				local_device_resource_data {
-					source_path = "/dev/source"
+    resource {
+        id = "test_id"
+        name = "test_name"
+        data_container {
+            local_device_resource_data {
+                source_path = "/dev/source"
 
-					group_owner_setting {
-						auto_add_group_owner = false
-						group_owner = "user"
-					}
-				}
-			}
-		}
+                group_owner_setting {
+                    auto_add_group_owner = false
+                    group_owner = "user"
+                }
+            }
+        }
 	}
 }
 `, rString)
@@ -227,23 +225,21 @@ func testAccAWSGreengrassResourceDefinitionConfig_LocalVolume(rString string) st
 	return fmt.Sprintf(`
 resource "aws_greengrass_resource_definition" "test" {
 	name = "resource_definition_%[1]s"
-	resource_definition_version {
-		resource {
-			id = "test_id"
-			name = "test_name"
-			data_container {
+    resource {
+        id = "test_id"
+        name = "test_name"
+        data_container {
 
-				local_volume_resource_data {
-					source_path = "/dev/source"
-					destination_path = "/destination"
+            local_volume_resource_data {
+                source_path = "/dev/source"
+                destination_path = "/destination"
 
-					group_owner_setting {
-						auto_add_group_owner = false
-						group_owner = "user"
-					}
-				}
-			}
-		}
+                group_owner_setting {
+                    auto_add_group_owner = false
+                    group_owner = "user"
+                }
+            }
+        }
 	}
 }
 `, rString)
@@ -253,17 +249,15 @@ func testAccAWSGreengrassResourceDefinitionConfig_S3MachineLearningModel(rString
 	return fmt.Sprintf(`
 resource "aws_greengrass_resource_definition" "test" {
 	name = "resource_definition_%[1]s"
-	resource_definition_version {
-		resource {
-			id = "test_id"
-			name = "test_name"
-			data_container {
-				s3_machine_learning_model_resource_data {
-					s3_uri = "s3://bucket/key.zip"
-					destination_path = "/destination"
-				}
-			}
-		}
+    resource {
+        id = "test_id"
+        name = "test_name"
+        data_container {
+            s3_machine_learning_model_resource_data {
+                s3_uri = "s3://bucket/key.zip"
+                destination_path = "/destination"
+            }
+        }
 	}
 }
 `, rString)
@@ -275,18 +269,16 @@ data "aws_caller_identity" "current" {}
 
 resource "aws_greengrass_resource_definition" "test" {
 	name = "resource_definition_%[1]s"
-	resource_definition_version {
-		resource {
-			id = "test_id"
-			name = "test_name"
-			data_container {
-				sagemaker_machine_learning_model_resource_data {
-					sagemaker_job_arn = "arn:aws:sagemaker:us-west-2:${data.aws_caller_identity.current.account_id}:training-job/xgboost-2018-06-05-17-19-32-703"
-					destination_path = "/destination"
-				}
-			}
-		}
-	}
+    resource {
+        id = "test_id"
+        name = "test_name"
+        data_container {
+            sagemaker_machine_learning_model_resource_data {
+                sagemaker_job_arn = "arn:aws:sagemaker:us-west-2:${data.aws_caller_identity.current.account_id}:training-job/xgboost-2018-06-05-17-19-32-703"
+                destination_path = "/destination"
+            }
+        }
+    }
 }
 `, rString)
 }
@@ -295,20 +287,18 @@ func testAccAWSGreengrassResourceDefinitionConfig_SecretsManagerSecret(rString s
 	return fmt.Sprintf(`
 resource "aws_greengrass_resource_definition" "test" {
 	name = "resource_definition_%[1]s"
-	resource_definition_version {
-		resource {
-			id = "test_id"
-			name = "test_name"
-			data_container {
-				secrets_manager_secret_resource_data {
-					secret_arn = "arn:aws:secretsmanager:us-west-2:123456789012:secret:greengrass-TwilioAuthToken-ntSlp6"
-					additional_staging_labels_to_download = [
-						"label1",
-						"label2",
-					]
-				}
-			}
-		}
+    resource {
+        id = "test_id"
+        name = "test_name"
+        data_container {
+            secrets_manager_secret_resource_data {
+                secret_arn = "arn:aws:secretsmanager:us-west-2:123456789012:secret:greengrass-TwilioAuthToken-ntSlp6"
+                additional_staging_labels_to_download = [
+                    "label1",
+                    "label2",
+                ]
+            }
+        }
 	}
 }
 `, rString)

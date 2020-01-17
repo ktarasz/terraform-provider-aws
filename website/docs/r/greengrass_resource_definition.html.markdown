@@ -13,21 +13,19 @@ description: |-
 ```hcl
 resource "aws_greengrass_resource_definition" "test" {
 	name = "resource_definition"
-	resource_definition_version {
-		resource {
-			id = "test_id"
-			name = "test_name"
-			data_container {
-				local_device_resource_data {
-					source_path = "/dev/source"
+    resource {
+        id = "test_id"
+        name = "test_name"
+        data_container {
+            local_device_resource_data {
+                source_path = "/dev/source"
 
-					group_owner_setting {
-						auto_add_group_owner = false
-						group_owner = "user"
-					}
-				}
-			}
-		}
+                group_owner_setting {
+                    auto_add_group_owner = false
+                    group_owner = "user"
+                }
+            }
+        }
 	}
 }
 ```
@@ -35,10 +33,7 @@ resource "aws_greengrass_resource_definition" "test" {
 ## Argument Reference
 * `name` - (Required) The name of the resource definition.
 * `tags` - (Optional) Map. Map of tags. Metadata that can be used to manage the resource definition.
-* `resource_definition_version` - (Optional) Object. Information about a resource definition version.
-
-The `resource_definition_version` object has such arguments.
-* `resource` - (Optional) List. Component of resource definition.
+* `resource` - (Optional) Object. Information about a resource definition.
 
 The `resource` object has such arguments:
 * `id` - (Required) String. The resource ID, used to refer to a resource in the Lambda function configuration. Max length is 128 characters with pattern ''[a-zA-Z0-9:_-]+''. This must be unique within a Greengrass group.
